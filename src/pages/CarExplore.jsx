@@ -3,18 +3,113 @@ import {
   Search,
   SlidersHorizontal,
   Star,
-  MapPin,
-  Calendar,
   Car,
   X,
+  ArrowLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Loader from "../main/Loader";
 import API_BASE_URL from "../config/apiConfig";
 
 export default function CarExplore() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const normalizeValue = (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
+
+  const toNumber = (value) => {
+    if (value?.$numberDecimal) return parseFloat(value.$numberDecimal);
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const isRentListing = (car) => {
+    const possibleValues = [
+      car.RentList,
+      car.rentList,
+      car.listingType,
+      car.listing_type,
+      car.type,
+      car.category,
+      car.purpose,
+      car.mode,
+    ]
+      .map(normalizeValue)
+      .filter(Boolean);
+
+    const joined = possibleValues.join(" ");
+
+    return (
+      possibleValues.some(
+        (value) =>
+          value === "rent" ||
+          value === "rental" ||
+          value === "for rent" ||
+          value === "rent car",
+      ) ||
+      joined.includes("rent") ||
+      car.forRent === true
+    );
+  };
+
+  const isBuyListing = (car) => {
+    const possibleValues = [
+      car.RentList,
+      car.rentList,
+      car.listingType,
+      car.listing_type,
+      car.type,
+      car.category,
+      car.purpose,
+      car.mode,
+    ]
+      .map(normalizeValue)
+      .filter(Boolean);
+
+    const joined = possibleValues.join(" ");
+
+    return (
+      possibleValues.some(
+        (value) =>
+          value === "list" ||
+          value === "buy" ||
+          value === "sale" ||
+          value === "sell" ||
+          value === "for sale",
+      ) ||
+      joined.includes("sale") ||
+      joined.includes("buy") ||
+      joined.includes("list")
+    );
+  };
+
+  const isActiveListing = (car) => {
+    const status = normalizeValue(car.listing_status || car.status);
+
+    if (!status) return true;
+
+    return ["active", "approved", "available", "listed", "published"].includes(
+      status,
+    );
+  };
+
+  const getInitialMarketplaceMode = () => {
+    const params = new URLSearchParams(location.search);
+    const modeFromQuery = params.get("mode");
+    const modeFromState = location.state?.mode;
+
+    if (modeFromState === "rent" || modeFromQuery === "rent") {
+      return "rent";
+    }
+
+    return "buy";
+  };
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [carType, setCarType] = useState("");
   const [make, setMake] = useState("");
   const [year, setYear] = useState("");
@@ -22,48 +117,107 @@ export default function CarExplore() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTransmission, setSelectedTransmission] = useState("All");
-  const [marketplaceMode, setMarketplaceMode] = useState("buy");
+  const [marketplaceMode, setMarketplaceMode] = useState(
+    getInitialMarketplaceMode(),
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState("none"); // 'none', 'lowToHigh', 'highToLow'
+  const [sortOrder, setSortOrder] = useState("none");
   const [minRating, setMinRating] = useState(0);
+  const [driverSelections, setDriverSelections] = useState({});
+
+  const handleDriverSelectionChange = (carId, value) => {
+    setDriverSelections((prev) => ({
+      ...prev,
+      [carId]: value,
+    }));
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const modeFromQuery = params.get("mode");
+    const modeFromState = location.state?.mode;
+
+    if (modeFromState === "rent" || modeFromQuery === "rent") {
+      setMarketplaceMode("rent");
+    } else if (modeFromState === "buy" || modeFromQuery === "buy") {
+      setMarketplaceMode("buy");
+    }
+  }, [location]);
+
+  useEffect(() => {
+    const hiddenElements = [];
+    const selectors = ["nav", ".navbar", "#navbar"];
+
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        hiddenElements.push({
+          element,
+          previousDisplay: element.style.display,
+        });
+        element.style.display = "none";
+      });
+    });
+
+    return () => {
+      hiddenElements.forEach(({ element, previousDisplay }) => {
+        element.style.display = previousDisplay;
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const fetchCars = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         const response = await fetch(`${API_BASE_URL}/api/listings/listings`);
+
         if (!response.ok) {
           throw new Error("Failed to fetch car listings");
         }
+
         const data = await response.json();
 
-        const filteredCars = data.filter(
-          (car) =>
-            car.RentList === (marketplaceMode === "rent" ? "Rent" : "List") &&
-            car.listing_status === "active"
-        );
+        const filteredCars = data.filter((car) => {
+          if (!isActiveListing(car)) return false;
+
+          return marketplaceMode === "rent"
+            ? isRentListing(car)
+            : isBuyListing(car);
+        });
 
         const transformedCars = filteredCars.map((car, index) => ({
-          id: car.listing_id || index,
-          listing_id: car.listing_id,
+          id: car.listing_id || car._id || index,
+          listing_id: car.listing_id || car._id || index,
           make: car.make || "Unknown",
           model: car.model || "Model",
           year: car.year || new Date().getFullYear(),
-          price: car.price?.$numberDecimal
-            ? parseFloat(car.price.$numberDecimal)
-            : 0,
-          mileage: car.mileage || 0,
-          carType: car.carType || "Unknown",
-          image: car.images?.[0]?.url || "",
-          rentList: car.RentList,
+          price: toNumber(car.price),
+          mileage: Number(car.mileage) || 0,
+          carType: car.carType || car.bodyType || "Unknown",
+          image: car.images?.[0]?.url || car.image || "",
+          rentList: car.RentList || car.rentList || "",
           transmission: car.transmission || "Unknown",
-          rating: Math.random() * 2 + 3,
-          reviews: Math.floor(Math.random() * 100) + 1,
+          rating: car.rating ? Number(car.rating) : Math.random() * 2 + 3,
+          reviews: car.reviewsCount
+            ? Number(car.reviewsCount)
+            : Math.floor(Math.random() * 100) + 1,
         }));
 
         setCars(transformedCars);
-        setIsLoading(false);
+
+        if (marketplaceMode === "rent") {
+          const initialDriverSelections = {};
+          transformedCars.forEach((car) => {
+            initialDriverSelections[car.id] =
+              driverSelections[car.id] || "Without Driver";
+          });
+          setDriverSelections(initialDriverSelections);
+        }
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Something went wrong");
+      } finally {
         setIsLoading(false);
       }
     };
@@ -71,24 +225,30 @@ export default function CarExplore() {
     fetchCars();
   }, [marketplaceMode]);
 
-  // Filter and sort cars
   const getFilteredAndSortedCars = () => {
     let filtered = cars.filter((car) => {
       const isPriceInRange =
         car.price >= priceRange[0] && car.price <= priceRange[1];
+
       const isCarTypeMatch = carType
-        ? car.carType.toLowerCase() === carType.toLowerCase()
+        ? normalizeValue(car.carType) === normalizeValue(carType)
         : true;
+
       const isMakeMatch = make
-        ? car.make.toLowerCase() === make.toLowerCase()
+        ? normalizeValue(car.make) === normalizeValue(make)
         : true;
+
       const isYearMatch = year ? car.year.toString() === year : true;
+
       const isTransmissionMatch =
         selectedTransmission === "All" ||
-        car.transmission === selectedTransmission;
+        normalizeValue(car.transmission) ===
+          normalizeValue(selectedTransmission);
+
       const isRatingMatch = car.rating >= minRating;
+
       const matchesSearch = searchQuery
-        ? (car.make + " " + car.model + " " + car.year)
+        ? `${car.make} ${car.model} ${car.year} ${car.carType}`
             .toLowerCase()
             .includes(searchQuery.toLowerCase())
         : true;
@@ -104,14 +264,10 @@ export default function CarExplore() {
       );
     });
 
-    // Apply sorting
     if (sortOrder !== "none") {
       filtered.sort((a, b) => {
-        if (sortOrder === "lowToHigh") {
-          return a.price - b.price;
-        } else {
-          return b.price - a.price;
-        }
+        if (sortOrder === "lowToHigh") return a.price - b.price;
+        return b.price - a.price;
       });
     }
 
@@ -122,35 +278,53 @@ export default function CarExplore() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-white dark:bg-gray-900">
         <Loader />
-        <p className="ml-2 text-lg text-gray-600">Loading cars...</p>
+        <p className="ml-2 text-lg text-gray-600 dark:text-gray-300">
+          Loading cars...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-red-500">
+      <div className="flex justify-center items-center min-h-screen bg-white dark:bg-gray-900 text-red-500">
         <p className="text-lg">Error: {error}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200 dark:text-white">
-      <header className="bg-white dark:bg-gray-800 shadow-md">
+    <div className="relative flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200 dark:text-white">
+      <button
+        onClick={() => navigate("/")}
+        className="fixed top-4 left-4 z-50 inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white shadow-lg transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+      >
+        <ArrowLeft size={18} />
+        Back
+      </button>
+
+      <header className="bg-white dark:bg-gray-800 shadow-md pt-2">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              {marketplaceMode === "rent"
-                ? "Rent Your Perfect Car"
-                : "Find Your Perfect Car"}
-            </h1>
-            <div className="flex justify-center mb-10">
-              <div className="inline-flex rounded-full p-1 bg-gray-200 dark:bg-gray-700">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+                {marketplaceMode === "rent"
+                  ? "Rent Your Perfect Car"
+                  : "Find Your Perfect Car"}
+              </h1>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                {marketplaceMode === "rent"
+                  ? "Quality assured vehicles for your rental needs"
+                  : "Quality assured vehicles at competitive prices"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <div className="inline-flex rounded-full p-1 bg-gray-200 dark:bg-gray-700 shadow-sm">
                 <button
-                  className={`px-6 py-1 rounded-full text-lg font-medium transition-all duration-300 ease-in-out ${
+                  className={`px-6 py-2 rounded-full text-lg font-medium transition-all duration-300 ease-in-out ${
                     marketplaceMode === "buy"
                       ? "bg-white dark:bg-gray-800 text-black dark:text-white shadow-lg"
                       : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -159,8 +333,9 @@ export default function CarExplore() {
                 >
                   Buy
                 </button>
+
                 <button
-                  className={`px-6 py-1 rounded-full text-lg font-medium transition-all duration-300 ease-in-out ${
+                  className={`px-6 py-2 rounded-full text-lg font-medium transition-all duration-300 ease-in-out ${
                     marketplaceMode === "rent"
                       ? "bg-white dark:bg-gray-800 text-black dark:text-white shadow-lg"
                       : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -171,27 +346,32 @@ export default function CarExplore() {
                 </button>
               </div>
             </div>
-            <div className="relative w-full md:w-96">
-              <input
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-gray-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                placeholder="Search by Make, Model, or Year"
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+
+            <div className="flex-1 flex justify-end">
+              <div className="relative w-full max-w-md">
+                <input
+                  className="pl-10 pr-4 py-3 w-full border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-gray-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Search by Make, Model, or Year"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+              </div>
             </div>
           </div>
         </div>
       </header>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 text-center">
+
+      <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 text-center">
         {marketplaceMode === "rent"
           ? "Quality assured vehicles for your rental needs"
           : "Quality assured vehicles at competitive prices"}
       </p>
+
       <main className="flex-grow container mx-auto px-4 py-8 bg-inherit">
         <div className="flex flex-col md:flex-row gap-8">
           <aside
@@ -204,8 +384,8 @@ export default function CarExplore() {
               <h2 className="text-xl font-semibold mb-4 dark:text-white">
                 Filters
               </h2>
+
               <div className="space-y-6">
-                {/* Sort Order */}
                 <div>
                   <label
                     htmlFor="sort-order"
@@ -241,17 +421,17 @@ export default function CarExplore() {
                     type="range"
                     id="price-range"
                     min="0"
-                    max="100000"
+                    max="10000000"
                     step="1000"
                     value={priceRange[1]}
                     onChange={(e) =>
-                      setPriceRange([0, parseInt(e.target.value)])
+                      setPriceRange([0, parseInt(e.target.value, 10)])
                     }
                     className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                     <span>₹0</span>
-                    <span>₹100,000+</span>
+                    <span>₹10,000,000+</span>
                   </div>
                 </div>
 
@@ -274,7 +454,7 @@ export default function CarExplore() {
                         <option key={makeName} value={makeName}>
                           {makeName}
                         </option>
-                      )
+                      ),
                     )}
                   </select>
                 </div>
@@ -298,7 +478,7 @@ export default function CarExplore() {
                         <option key={type} value={type}>
                           {type}
                         </option>
-                      )
+                      ),
                     )}
                   </select>
                 </div>
@@ -385,6 +565,7 @@ export default function CarExplore() {
                   {filteredCars.length === 1 ? "car" : "cars"} found
                 </p>
               </div>
+
               <button
                 className="md:hidden px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300 ease-in-out"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -408,9 +589,11 @@ export default function CarExplore() {
                     alt={`${car.make} ${car.model}`}
                     className="w-full h-48 object-cover"
                     src={
-                      car.image.startsWith("http")
+                      car.image && car.image.startsWith("http")
                         ? car.image
-                        : `${API_BASE_URL}${car.image}`
+                        : car.image
+                          ? `${API_BASE_URL}${car.image}`
+                          : "https://via.placeholder.com/600x400?text=No+Image"
                     }
                     style={{ objectFit: "cover", minWidth: "100%" }}
                   />
@@ -419,34 +602,69 @@ export default function CarExplore() {
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                       {`${car.make} ${car.model}`}
                     </h3>
+
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                       {car.year} • {car.mileage.toLocaleString()} miles •{" "}
                       {car.carType}
                     </p>
 
                     {marketplaceMode === "rent" && (
-                      <p className="flex items-center text-sm mt-2 dark:text-gray-300">
-                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                        {car.rating.toFixed(1)} ({car.reviews} reviews)
-                      </p>
+                      <>
+                        <p className="flex items-center text-sm mt-2 dark:text-gray-300">
+                          <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                          {Number(car.rating).toFixed(1)} ({car.reviews}{" "}
+                          reviews)
+                        </p>
+
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Choose Rental Type
+                          </label>
+                          <select
+                            value={driverSelections[car.id] || "Without Driver"}
+                            onChange={(e) =>
+                              handleDriverSelectionChange(
+                                car.id,
+                                e.target.value,
+                              )
+                            }
+                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-gray-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                          >
+                            <option value="With Driver">With Driver</option>
+                            <option value="Without Driver">
+                              Without Driver
+                            </option>
+                          </select>
+                        </div>
+                      </>
                     )}
 
                     <div className="mt-auto">
-                      <p className="text-xl font-bold text-black dark:text-white">
+                      <p className="text-xl font-bold text-black dark:text-white mt-4">
                         ₹{car.price.toLocaleString()}
                         {marketplaceMode === "rent" && (
                           <span className="text-sm font-normal">/Day</span>
                         )}
                       </p>
 
-                      <Link to={`/${marketplaceMode}-car/${car.listing_id}`}>
+                      <Link
+                        to={`/${marketplaceMode}-car/${car.listing_id}`}
+                        state={
+                          marketplaceMode === "rent"
+                            ? {
+                                driverOption:
+                                  driverSelections[car.id] || "Without Driver",
+                              }
+                            : {}
+                        }
+                      >
                         <button className="w-full mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-700 dark:bg-white dark:text-black dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300 ease-in-out">
                           {marketplaceMode === "rent" ? (
                             "Rent Now"
                           ) : (
                             <>
-                              <Car className="inline-block mr-2 h-4 w-4" /> View
-                              Details
+                              <Car className="inline-block mr-2 h-4 w-4" />
+                              View Details
                             </>
                           )}
                         </button>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Globe,
   Menu,
@@ -22,6 +23,8 @@ import {
 } from "lucide-react";
 
 function Navbar() {
+  const navigate = useNavigate();
+
   const [language, setLanguage] = useState("EN");
   const [location, setLocation] = useState("NEP");
   const [theme, setTheme] = useState("light");
@@ -34,7 +37,6 @@ function Navbar() {
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Auto-hide navbar after 2 seconds
   useEffect(() => {
     const hideTimer = setTimeout(() => {
       setIsNavbarVisible(false);
@@ -43,7 +45,6 @@ function Navbar() {
     return () => clearTimeout(hideTimer);
   }, []);
 
-  // Show navbar when mouse is near top of screen
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (e.clientY < 80) {
@@ -62,7 +63,6 @@ function Navbar() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [isMenuOpen, showSearch, showProfileMenu]);
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -71,7 +71,6 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Apply theme
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === "dark") {
@@ -121,7 +120,6 @@ function Navbar() {
 
   return (
     <div className="flex flex-col">
-      {/* TRANSPARENT NAVBAR WITH AUTO-HIDE */}
       <header
         className={`fixed top-0 z-50 w-full transition-all duration-500 ease-in-out ${
           isNavbarVisible ? "translate-y-0" : "-translate-y-full"
@@ -133,21 +131,16 @@ function Navbar() {
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            {/* Logo Section */}
             <a href="/" className="flex items-center space-x-3 group">
               <div className="relative w-12 h-12">
-                {/* Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
 
-                {/* Logo container with actual RENTGO image */}
                 <div className="relative w-full h-full rounded-full overflow-hidden shadow-xl transform group-hover:scale-110 transition-all duration-300">
                   <img
                     src={require("../main/Banner_images/RENTGO.png")}
                     alt="REN TGO Logo"
                     className="w-full h-full object-cover"
                   />
-
-                  {/* Small sparkle for animation */}
                   <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-yellow-200 animate-pulse" />
                 </div>
               </div>
@@ -173,7 +166,6 @@ function Navbar() {
               </div>
             </a>
 
-            {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-3">
               {menuItems
                 .filter((item) => item.show)
@@ -196,27 +188,22 @@ function Navbar() {
                 ))}
             </nav>
 
-            {/* Right Section */}
             <div className="flex items-center space-x-2 md:space-x-3">
-              {/* Search Button */}
               <button
                 onClick={() => setShowSearch(!showSearch)}
                 aria-label="Search"
-                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl 
-    transition-all duration-300 hover:scale-110 group
-    ${
-      isScrolled
-        ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
-        : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
-    }
-  `}
+                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl transition-all duration-300 hover:scale-110 group ${
+                  isScrolled
+                    ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
+                    : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
+                }`}
               >
                 <Search className="h-5 w-5" />
               </button>
 
-              {/* Notifications */}
               {isAuthenticated && (
                 <button
+                  onClick={() => navigate("/Notification")}
                   aria-label="Notifications"
                   className={`group relative p-2.5 rounded-xl transition-all duration-300 hover:scale-110 ${
                     isScrolled
@@ -226,14 +213,12 @@ function Navbar() {
                 >
                   <Bell className="h-5 w-5 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300" />
 
-                  {/* Notification Count Badge */}
                   {notifications > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse shadow-lg">
                       {notifications}
                     </span>
                   )}
 
-                  {/* Tooltip */}
                   <span
                     className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs font-semibold rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap ${
                       isScrolled
@@ -246,51 +231,38 @@ function Navbar() {
                 </button>
               )}
 
-              {/* Favorites */}
               {isAuthenticated && role !== "staff" && (
                 <a
                   href="/favorites"
                   aria-label="Favorites"
-                  className={`hidden md:flex items-center justify-center p-2.5 rounded-xl 
-      transition-all duration-300 hover:scale-110 group relative
-      ${
-        isScrolled
-          ? "bg-pink-700/90 text-white hover:bg-pink-800 dark:bg-pink-800 dark:hover:bg-pink-900"
-          : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
-      }
-    `}
+                  className={`hidden md:flex items-center justify-center p-2.5 rounded-xl transition-all duration-300 hover:scale-110 group relative ${
+                    isScrolled
+                      ? "bg-pink-700/90 text-white hover:bg-pink-800 dark:bg-pink-800 dark:hover:bg-pink-900"
+                      : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
+                  }`}
                 >
                   <Heart className="h-5 w-5 transition-all duration-300 group-hover:scale-125" />
 
-                  {/* Tooltip */}
                   <span
-                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-        px-2 py-1 text-xs font-semibold rounded shadow-md
-        opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap
-        ${
-          isScrolled
-            ? "bg-gray-800 text-white dark:bg-gray-700"
-            : "bg-white/90 text-gray-900"
-        }
-      `}
+                    className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs font-semibold rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap ${
+                      isScrolled
+                        ? "bg-gray-800 text-white dark:bg-gray-700"
+                        : "bg-white/90 text-gray-900"
+                    }`}
                   >
                     Favorites
                   </span>
                 </a>
               )}
 
-              {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
                 aria-label="Toggle theme"
-                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl 
-    transition-all duration-300 hover:scale-110 group relative
-    ${
-      isScrolled
-        ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
-        : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
-    }
-  `}
+                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl transition-all duration-300 hover:scale-110 group relative ${
+                  isScrolled
+                    ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
+                    : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
+                }`}
               >
                 {theme === "light" ? (
                   <Moon className="h-5 w-5 transition-transform duration-500 group-hover:rotate-180" />
@@ -298,34 +270,25 @@ function Navbar() {
                   <Sun className="h-5 w-5 transition-transform duration-500 group-hover:rotate-180" />
                 )}
 
-                {/* Tooltip */}
                 <span
-                  className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs 
-      font-semibold rounded shadow-md whitespace-nowrap
-      opacity-0 group-hover:opacity-100 transition-opacity duration-300
-      ${
-        isScrolled
-          ? "bg-gray-800 text-white dark:bg-gray-700"
-          : "bg-white/90 text-gray-900"
-      }
-    `}
+                  className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs font-semibold rounded shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    isScrolled
+                      ? "bg-gray-800 text-white dark:bg-gray-700"
+                      : "bg-white/90 text-gray-900"
+                  }`}
                 >
                   {theme === "light" ? "Dark Mode" : "Light Mode"}
                 </span>
               </button>
 
-              {/* Menu Toggle */}
               <button
                 onClick={toggleMenu}
                 aria-label="Toggle menu"
-                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl 
-    transition-all duration-300 hover:scale-110 group relative
-    ${
-      isScrolled
-        ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
-        : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
-    }
-  `}
+                className={`hidden md:flex items-center justify-center p-2.5 rounded-xl transition-all duration-300 hover:scale-110 group relative ${
+                  isScrolled
+                    ? "bg-amber-700/90 text-white hover:bg-amber-800 dark:bg-amber-800 dark:hover:bg-amber-900"
+                    : "bg-gray-900/80 text-white hover:bg-gray-900 backdrop-blur-md dark:bg-gray-900/90 dark:hover:bg-black/80"
+                }`}
               >
                 {isMenuOpen ? (
                   <X className="h-6 w-6 transition-transform duration-300 group-hover:rotate-90" />
@@ -333,23 +296,17 @@ function Navbar() {
                   <Menu className="h-6 w-6 transition-transform duration-300 group-hover:rotate-180" />
                 )}
 
-                {/* Tooltip */}
                 <span
-                  className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 
-      text-xs font-semibold rounded shadow-md whitespace-nowrap
-      opacity-0 group-hover:opacity-100 transition-opacity duration-300
-      ${
-        isScrolled
-          ? "bg-gray-800 text-white dark:bg-gray-700"
-          : "bg-white/90 text-gray-900"
-      }
-    `}
+                  className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs font-semibold rounded shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    isScrolled
+                      ? "bg-gray-800 text-white dark:bg-gray-700"
+                      : "bg-white/90 text-gray-900"
+                  }`}
                 >
                   Menu
                 </span>
               </button>
 
-              {/* User Profile with Dropdown */}
               {isAuthenticated && (
                 <div className="relative hidden md:block">
                   <button
@@ -360,7 +317,6 @@ function Navbar() {
                     <CircleUserRound className="h-6 w-6" />
                   </button>
 
-                  {/* Profile Dropdown */}
                   {showProfileMenu && (
                     <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-amber-200 dark:border-amber-700/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-4 border-b border-amber-200 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30">
@@ -422,7 +378,6 @@ function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar */}
         {showSearch && (
           <div
             className={`border-t transition-colors duration-300 ${
@@ -454,7 +409,6 @@ function Navbar() {
         )}
       </header>
 
-      {/* Sliding Menu */}
       <div
         className={`fixed top-0 right-0 w-full sm:w-96 h-full bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-amber-950/20 dark:to-gray-900 shadow-2xl transition-all transform duration-500 ease-out ${
           isMenuOpen
@@ -463,7 +417,6 @@ function Navbar() {
         }`}
         style={{ zIndex: 100 }}
       >
-        {/* Menu Header */}
         <div className="relative flex justify-between items-center p-6 border-b border-amber-200 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-950/50 dark:via-yellow-950/30 dark:to-amber-950/50">
           <a
             href="/"
@@ -489,11 +442,10 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Menu Items */}
         <nav className="px-4 pt-6 pb-6 space-y-2 overflow-y-auto h-[calc(100%-200px)]">
           {menuItems
             .filter((item) => item.show)
-            .map((item, index) => (
+            .map((item) => (
               <a
                 key={item.to}
                 href={item.to}
@@ -506,7 +458,6 @@ function Navbar() {
               </a>
             ))}
 
-          {/* Settings Link */}
           {isAuthenticated && (
             <a
               href="/settings"
@@ -519,7 +470,6 @@ function Navbar() {
           )}
         </nav>
 
-        {/* Menu Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-amber-200 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30">
           <div className="flex items-center justify-between mb-4">
             <button className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 group">
@@ -563,7 +513,6 @@ function Navbar() {
         </div>
       </div>
 
-      {/* Overlay */}
       {isMenuOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 z-40"
@@ -571,7 +520,6 @@ function Navbar() {
         />
       )}
 
-      {/* Profile Menu Overlay */}
       {showProfileMenu && (
         <div
           className="fixed inset-0 z-40"

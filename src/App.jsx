@@ -33,23 +33,22 @@ import AdminLogin from "./admin/AdminLogin";
 import ReportDesign from "./admin/ReportDesign";
 import "./ScrollToTopButton.css";
 import { ArrowBigUpDash } from "lucide-react";
-import BookServicing from "./pages/BookServicing"; // Import BookServicing
-import ViewServiceBookings from "./pages/ViewServiceBookings"; // Import ViewServiceBookings
-// Import React-Toastify
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Import the CSS
+import BookServicing from "./pages/BookServicing";
+import ViewServiceBookings from "./pages/ViewServiceBookings";
+import NotificationPage from "./pages/NotificationPage";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ContactUs from "./ContactUs";
 import PublicRoute from "./route/publicRoute";
 import ProtectedRoute from "./route/protectedRoute";
 
 function App() {
   const [loading, setLoading] = useState(true);
-  const [showScrollToTop, setShowScrollToTop] = useState(false); // State for button visibility
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   const ConditionalNavbar = () => {
     const location = useLocation();
 
-    // List of routes where Navbar should not be displayed
     const noNavbarRoutes = [
       "/AdminDashboard",
       "/CarManagement",
@@ -61,6 +60,7 @@ function App() {
       "/login",
       "/Signup",
       "/Error",
+      "/CarExplore",
     ];
 
     return !noNavbarRoutes.includes(location.pathname) ? <Navbar /> : null;
@@ -71,11 +71,10 @@ function App() {
       setLoading(false);
     }, 2500);
 
-    // Detect scroll to show/hide the button
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
-      setShowScrollToTop(scrollPosition > windowHeight * 0.4); // Show button after 40% scroll
+      setShowScrollToTop(scrollPosition > windowHeight * 0.4);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -86,7 +85,6 @@ function App() {
     };
   }, []);
 
-  // Scroll to top function with animation
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -96,7 +94,6 @@ function App() {
 
   return (
     <>
-      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -114,7 +111,6 @@ function App() {
         <ConditionalNavbar />
 
         <Routes>
-          {/* 🌐 Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/AboutUs" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
@@ -123,13 +119,11 @@ function App() {
           <Route path="/ForgotPassword" element={<ForgotPassword />} />
           <Route path="/ChangePassword" element={<ChangePassword />} />
 
-          {/* 🔓 Auth Routes (login/signup) */}
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
             <Route path="/Signup" element={<Signup />} />
           </Route>
 
-          {/* 🔐 Protected User Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/Dashboard" element={<Dashboard />} />
             <Route path="/Profile" element={<Profile />} />
@@ -142,6 +136,7 @@ function App() {
               path="/ViewServiceBookings"
               element={<ViewServiceBookings />}
             />
+            <Route path="/Notification" element={<NotificationPage />} />
             <Route path="/auction-car/:id" element={<AuctionCarDetails />} />
             <Route path="/buy-car/:id" element={<BuyCarDetails />} />
             <Route path="/buy-car-details/:id" element={<BuyCarDetails />} />
@@ -149,7 +144,6 @@ function App() {
             <Route path="/payment/:id" element={<Payment />} />
           </Route>
 
-          {/* 🔐 Admin Protected (optional separate later) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/AdminDashboard" element={<AdminDashboard />} />
             <Route path="/CarManagement" element={<CarManagement />} />
@@ -159,12 +153,10 @@ function App() {
             <Route path="/ReportDesign" element={<ReportDesign />} />
           </Route>
 
-          {/* ❌ Error */}
           <Route path="/*" element={<Error />} />
         </Routes>
       </Router>
 
-      {/* Scroll to Top Button */}
       {showScrollToTop && (
         <div className="scroll-to-top" onClick={scrollToTop}>
           <ArrowBigUpDash />
