@@ -15,12 +15,13 @@ import {
   DollarSign,
   Maximize,
 } from "lucide-react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import TermsAndConditions from "../legal/terms&conditions";
 import API_BASE_URL from "../config/apiConfig";
 
 export default function RentCarDetails() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,16 @@ export default function RentCarDetails() {
   const toggleBreakdown = () => {
     setShowBreakdown(!showBreakdown);
   };
+
+  useEffect(() => {
+    if (location.state?.pickupDate) {
+      setStartDate(location.state.pickupDate);
+    }
+
+    if (location.state?.returnDate) {
+      setEndDate(location.state.returnDate);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchCarDetails = async () => {

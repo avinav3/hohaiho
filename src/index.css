@@ -1,18 +1,42 @@
-/* body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-} */
-
-/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fix DayPicker calendar fitting inside sidebar */
+.rdp {
+  --rdp-cell-size: 32px !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.rdp-months {
+  width: 100% !important;
+}
+
+.rdp-month {
+  width: 100% !important;
+}
+
+.rdp-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.rdp-head_cell,
+.rdp-cell {
+  width: auto !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.rdp-day {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.75rem !important;
+  margin: auto !important;
+}
+
+.rdp-caption {
+  padding: 0 0 8px 0 !important;
+}
