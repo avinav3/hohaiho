@@ -1,15 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { isAdmin, isAuthenticated } from "../utils/auth";
 
 const ProtectedRoute = () => {
-  // Your login flow stores these keys (see `src/auth/Login.jsx`)
-  const isAuthenticated =
-    Boolean(localStorage.getItem("id")) ||
-    Boolean(localStorage.getItem("name")) ||
-    Boolean(localStorage.getItem("adminId")) ||
-    Boolean(localStorage.getItem("adminName"));
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
 
-  // Requirement: unauthenticated users should only reach the home page.
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return isAdmin() ? <Navigate to="/AdminDashboard" replace /> : <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -21,94 +21,8 @@ import {
   Heart,
   Sparkles,
 } from "lucide-react";
-
-const getFirstNonEmpty = (values = []) => {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim() !== "") {
-      return value.trim();
-    }
-  }
-  return "";
-};
-
-const readStorageValue = (key) =>
-  getFirstNonEmpty([localStorage.getItem(key), sessionStorage.getItem(key)]);
-
-const getStoredUserData = () => {
-  const name = getFirstNonEmpty([
-    readStorageValue("name"),
-    readStorageValue("fullName"),
-    readStorageValue("fullname"),
-    readStorageValue("username"),
-    readStorageValue("userName"),
-    readStorageValue("displayName"),
-  ]);
-
-  const role = getFirstNonEmpty([
-    readStorageValue("role"),
-    readStorageValue("userRole"),
-    readStorageValue("userType"),
-    readStorageValue("accountType"),
-  ]);
-
-  const token = getFirstNonEmpty([
-    readStorageValue("token"),
-    readStorageValue("authToken"),
-    readStorageValue("accessToken"),
-  ]);
-
-  const id = getFirstNonEmpty([
-    readStorageValue("id"),
-    readStorageValue("user_id"),
-  ]);
-
-  return {
-    name: name || "User",
-    role: role || null,
-    isAuthenticated: Boolean(token || id),
-  };
-};
-
-const clearStoredAuthData = () => {
-  const keysToRemove = [
-    "rentgoUser",
-    "loggedInUser",
-    "currentUser",
-    "user",
-    "authUser",
-    "userData",
-    "profile",
-    "loginData",
-    "customer",
-    "account",
-    "userInfo",
-    "token",
-    "authToken",
-    "accessToken",
-    "refreshToken",
-    "id",
-    "user_id",
-    "role",
-    "userRole",
-    "userType",
-    "accountType",
-    "name",
-    "fullName",
-    "fullname",
-    "username",
-    "userName",
-    "displayName",
-    "email",
-    "userEmail",
-    "mail",
-    "emailAddress",
-  ];
-
-  keysToRemove.forEach((key) => {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
-  });
-};
+import { getStoredUser, isAuthenticated as hasAuthSession } from "../utils/auth";
+import logout from "../utils/logout";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -129,13 +43,13 @@ function Navbar() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const syncUserFromStorage = () => {
-    const storedUser = getStoredUserData();
+    const storedUser = getStoredUser();
 
     setUserData({
-      name: storedUser.name || "User",
+      name: storedUser?.name || "User",
     });
-    setRole(storedUser.role || null);
-    setIsAuthenticated(storedUser.isAuthenticated);
+    setRole(storedUser?.role || null);
+    setIsAuthenticated(hasAuthSession());
   };
 
   useEffect(() => {
@@ -215,16 +129,10 @@ function Navbar() {
     setIsMenuOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowProfileMenu(false);
     closeMenu();
-    clearStoredAuthData();
-    setIsAuthenticated(false);
-    setRole(null);
-    setUserData({
-      name: "User",
-    });
-    navigate("/login", { replace: true });
+    await logout({ navigate, redirectTo: "/login" });
   };
 
   const menuItems = [

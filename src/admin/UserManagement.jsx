@@ -13,8 +13,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import Sidebar from "./Sidebar";
-import API_BASE_URL from "../config/apiConfig";
-import AdminAuth from "./AdminAuth";
+import api from "../utils/api";
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -40,8 +39,8 @@ function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/get-users`);
-      const data = await response.json();
+      const response = await api.get("/get-users");
+      const data = response.data;
       setUsers(data);
       setFilteredUsers(data);
     } catch (error) {
@@ -128,13 +127,8 @@ function UserManagement() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/update-profile`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editableUser),
-      });
-
-      const result = await response.json();
+      const response = await api.post("/update-profile", editableUser);
+      const result = response.data;
       if (result.flag === "1") {
         fetchUsers();
         setIsEditing(false);
@@ -153,15 +147,13 @@ function UserManagement() {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/deleteUser/${userId}`, {
-        method: "DELETE",
-      });
+      const response = await api.delete(`/api/deleteUser/${userId}`);
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         alert("User deleted successfully!");
         fetchUsers();
       } else {
-        const result = await response.json();
+        const result = response.data;
         alert(result.message || "Error deleting user.");
       }
     } catch (error) {
@@ -505,4 +497,4 @@ function UserManagement() {
   );
 }
 
-export default AdminAuth(UserManagement);
+export default UserManagement;

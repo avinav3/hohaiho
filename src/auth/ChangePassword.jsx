@@ -1,14 +1,16 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-// import API_BASE_URL from './apiConfig';
-import API_BASE_URL from '../config/apiConfig';
+import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
+import { getStoredUser } from "../utils/auth";
 
 function ChangePassword() {
     const [mydata, setData] = useState({});
     const [id, setId] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const storedId = localStorage.getItem('id');
+        const storedUser = getStoredUser();
+        const storedId = storedUser?.id || storedUser?.user_id || '';
         if (storedId) {
             setId(storedId);
         }
@@ -24,7 +26,6 @@ function ChangePassword() {
     const submitValue = (event) => {
         event.preventDefault();
         
-        // Construct the data object
         const data = {
             id: id,
             opass: mydata.password,
@@ -32,15 +33,12 @@ function ChangePassword() {
             cpass: mydata.cpassword
         };
 
-        // Send the data as JSON
-        axios.post(`${API_BASE_URL}/change-password`, data)
+        api.post(`/change-password`, data)
 		
         .then((response) => {
-            console.log(response);
             if (response.data.flag === "1") {
-                const msg = response.data.message;
-                alert(msg);
-                window.location = '/Dashboard'; // Fixed typo from "Dashbord" to "Dashboard"
+                alert(response.data.message);
+                navigate('/Dashboard', { replace: true });
             } else {
                 alert(response.data.message);
             }
@@ -59,8 +57,8 @@ function ChangePassword() {
               type="text" 
               name="id" 
               placeholder="Enter ID" 
-              onChange={onChange} 
               value={id} 
+              disabled
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
             />
             <input 

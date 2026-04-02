@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import UserAuth from "./UserAuth";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Clock, Key, LogOut, User, Calendar, X } from "lucide-react";
-import API_BASE_URL from "../config/apiConfig";
-import { toast } from "react-toastify";
+import api from "../utils/api";
+import { getStoredUser } from "../utils/auth";
+import logout from "../utils/logout";
 
 function Dashboard() {
   const [name, setName] = React.useState("");
@@ -12,13 +13,11 @@ function Dashboard() {
   const [bookings, setBookings] = useState([]);
   const [showBookings, setShowBookings] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  function logout() {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/";
-    alert("You have been logged out!");
-  }
+  const handleLogout = async () => {
+    await logout({ navigate, redirectTo: "/login" });
+  };
 
   function toTitleCase(str) {
     return str.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -46,12 +45,11 @@ function Dashboard() {
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
-      const userId = localStorage.getItem("id");
-      const response = await fetch(
-        `${API_BASE_URL}/api/uid/booking?user_id=${userId}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch bookings");
-      const data = await response.json();
+      const userId = getStoredUser()?.id || getStoredUser()?.user_id;
+      const response = await api.get(`/api/uid/booking`, {
+        params: { user_id: userId },
+      });
+      const data = response.data;
 
       const transformedBookings = data.map((booking) => ({
         ...booking,
@@ -75,8 +73,9 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const storedName = localStorage.getItem("name");
-    const storedLastLogin = localStorage.getItem("lastLogin");
+    const storedUser = getStoredUser();
+    const storedName = storedUser?.name || "";
+    const storedLastLogin = storedUser?.lastLogin || localStorage.getItem("lastLogin");
 
     if (storedName) {
       const formattedName = toTitleCase(storedName);
@@ -190,7 +189,7 @@ function Dashboard() {
             </div>
             <div className="pt-4">
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 type="button"
                 className="w-full group relative flex items-center justify-center gap-2 p-4 rounded-xl bg-black text-white hover:bg-gray-900 transition-all duration-300"
               >

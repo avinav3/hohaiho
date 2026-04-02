@@ -1,37 +1,46 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-// import API_BASE_URL from './apiConfig';
-import API_BASE_URL from '../config/apiConfig';
+import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
+import { getStoredUser, setAuthSession } from "../utils/auth";
 
 function Profile() {
     const [mydata, setData] = useState({
         name: '',
         email: '',
         mobile: '',
-        createdAt: '',  // Change created to createdAt to align with the backend field name
+        createdAt: '',
 		lastLogin: ''
     });
     const [id, setId] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const storedId = localStorage.getItem('id');
+        const storedUser = getStoredUser();
+        const storedId = storedUser?.id || storedUser?.user_id || '';
         if (storedId) {
             setId(storedId);
 
-            // Fetch profile data based on the user ID
-            axios.get(`${API_BASE_URL}/get-profile`, {
+            api.get(`/get-profile`, {
                 params: { id: storedId }
             })
             .then((response) => {
                 const userData = response.data;
-                console.log('Fetched user data:', userData); // Debugging line
                 if (userData) {
                     setData({
                         name: userData.name || '',
                         email: userData.email || '',
                         mobile: userData.mobile || '',
-						createdAt: formatDate(userData.createdAt),  // Format the date
+						createdAt: formatDate(userData.createdAt),
 						lastLogin: formatDate(userData.lastLogin)
+                    });
+
+                    setAuthSession({
+                      accessToken: localStorage.getItem("accessToken"),
+                      user: {
+                        ...storedUser,
+                        ...userData,
+                        id: storedId,
+                      },
                     });
                 }
             })
@@ -57,7 +66,6 @@ function Profile() {
     const submitValue = (event) => {
         event.preventDefault();
 
-        // Construct the data object
         const data = {
             id: id,
             name: mydata.name,
@@ -65,14 +73,24 @@ function Profile() {
             mobile: mydata.mobile,
         };
 
-        // Send the updated data as JSON
-        axios.post(`${API_BASE_URL}/update-profile`, data)
+        api.post(`/update-profile`, data)
         .then((response) => {
-            console.log(response);
             if (response.data.flag === "1") {
-                const msg = response.data.message;
-                alert(msg);
-                window.location = "/Dashboard"; // Fixed typo from "Dashbord" to "Dashboard"
+                const updatedUser = {
+                  ...(getStoredUser() || {}),
+                  id,
+                  name: mydata.name,
+                  email: mydata.email,
+                  mobile: mydata.mobile,
+                };
+
+                setAuthSession({
+                  accessToken: localStorage.getItem("accessToken"),
+                  user: updatedUser,
+                });
+
+                alert(response.data.message);
+                navigate("/Dashboard", { replace: true });
             } else {
                 alert(response.data.message);
             }

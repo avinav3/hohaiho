@@ -1,14 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { isAdmin, isAuthenticated } from "../utils/auth";
 
 const PublicRoute = () => {
-  // If already logged in, don't allow visiting login/signup.
-  const isAuthenticated =
-    Boolean(localStorage.getItem("id")) ||
-    Boolean(localStorage.getItem("name")) ||
-    Boolean(localStorage.getItem("adminId")) ||
-    Boolean(localStorage.getItem("adminName"));
+  if (!isAuthenticated()) {
+    return <Outlet />;
+  }
 
-  return isAuthenticated ? <Navigate to="/Dashboard" /> : <Outlet />;
+  return isAdmin() ? <Navigate to="/AdminDashboard" replace /> : <Navigate to="/Dashboard" replace />;
 };
 
 export default PublicRoute;

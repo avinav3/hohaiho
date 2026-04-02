@@ -1,27 +1,33 @@
-// UserAuth.js
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAdmin, isAuthenticated } from "../utils/auth";
 
-// This is the higher-order component (HOC)
 const UserAuth = (WrappedComponent) => {
   return function AuthHOC(props) {
     const navigate = useNavigate();
     const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
-      // Check if the user is authenticated
-      if (!localStorage.getItem("name") && !isRedirecting) {
-        setIsRedirecting(true); // Set a flag to avoid multiple redirects
-        navigate("/login"); // Redirect to login page if not authenticated
+      if (isRedirecting) {
+        return;
+      }
+
+      if (!isAuthenticated()) {
+        setIsRedirecting(true);
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (isAdmin()) {
+        setIsRedirecting(true);
+        navigate("/AdminDashboard", { replace: true });
       }
     }, [navigate, isRedirecting]);
 
-    // If authenticated, render the wrapped component
-    if (localStorage.getItem("name") && !isRedirecting) {
+    if (isAuthenticated() && !isAdmin() && !isRedirecting) {
       return <WrappedComponent {...props} />;
     }
 
-    // Optionally, return null or a loading spinner while checking authentication
     return null;
   };
 };

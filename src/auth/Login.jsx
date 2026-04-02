@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import API_BASE_URL from "../config/apiConfig";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../utils/api";
+import { isAuthenticated, setAuthSession } from "../utils/auth";
+
+const extractAccessToken = (payload = {}) =>
+  payload.accessToken || payload.token || payload?.data?.accessToken || "";
 
 function Login() {
   const [mydata, setData] = useState({
@@ -15,10 +18,7 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedId = localStorage.getItem("id");
-    const storedUserId = localStorage.getItem("user_id");
-
-    if (storedId || storedUserId) {
+    if (isAuthenticated()) {
       navigate("/Dashboard", { replace: true });
     }
   }, [navigate]);
@@ -69,31 +69,37 @@ function Login() {
     };
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, data);
+      const response = await api.post("/login", data);
 
       if (response.data.flag === "1") {
         toast.success("Successfully logged in");
 
-        const name = response.data.name || "User";
-        const id = response.data.id || "";
-        const user_id = response.data.user_id || "";
-        const role = response.data.role || response.data.userRole || "";
+        let accessToken = extractAccessToken(response.data);
+        const user = response.data.user || {
+          id: response.data.id || response.data.user_id || "",
+          user_id: response.data.user_id || response.data.id || "",
+          name: response.data.name || "User",
+          email: response.data.email || mydata.email,
+          role: response.data.role || response.data.userRole || "user",
+          lastLogin: response.data.lastLogin || "",
+        };
 
-        localStorage.setItem("name", name);
-
-        if (id) {
-          localStorage.setItem("id", id);
+        if (!accessToken) {
+          try {
+            const refreshResponse = await api.post("/auth/refresh");
+            accessToken = extractAccessToken(refreshResponse.data);
+          } catch (refreshError) {
+            console.error("Unable to fetch access token after login:", refreshError);
+          }
         }
 
-        if (user_id) {
-          localStorage.setItem("user_id", user_id);
-        }
+        setAuthSession({ accessToken, user });
 
-        if (role) {
-          localStorage.setItem("role", role);
+        if (accessToken) {
+          navigate("/Dashboard", { replace: true });
+        } else {
+          toast.error("Login succeeded, but no access token was returned.");
         }
-
-        navigate("/Dashboard", { replace: true });
       } else {
         toast.error("You entered the wrong email ID or password");
       }

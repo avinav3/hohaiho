@@ -41,6 +41,7 @@ import "react-toastify/dist/ReactToastify.css";
 import ContactUs from "./ContactUs";
 import PublicRoute from "./route/publicRoute";
 import ProtectedRoute from "./route/protectedRoute";
+import AdminRoute from "./route/adminRoute";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -118,20 +119,20 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/Contact" element={<ContactUs />} />
           <Route path="/ComingSoon" element={<ComingSoon />} />
-          <Route path="/AdminLogin" element={<AdminLogin />} />
           <Route path="/ForgotPassword" element={<ForgotPassword />} />
-          <Route path="/ChangePassword" element={<ChangePassword />} />
 
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
             <Route path="/Login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/Signup" element={<Signup />} />
+            <Route path="/AdminLogin" element={<AdminLogin />} />
           </Route>
 
           <Route element={<ProtectedRoute />}>
             <Route path="/Dashboard" element={<Dashboard />} />
             <Route path="/Profile" element={<Profile />} />
+            <Route path="/ChangePassword" element={<ChangePassword />} />
             <Route path="/CarExplore" element={<CarExplore />} />
             <Route path="/BuyCarDetails" element={<BuyCarDetails />} />
             <Route path="/RentCarDetails" element={<RentCarDetails />} />
@@ -149,7 +150,7 @@ function App() {
             <Route path="/payment/:id" element={<Payment />} />
           </Route>
 
-          <Route element={<ProtectedRoute />}>
+          <Route element={<AdminRoute />}>
             <Route path="/AdminDashboard" element={<AdminDashboard />} />
             <Route path="/CarManagement" element={<CarManagement />} />
             <Route path="/BookingManagement" element={<BookingManagement />} />

@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import logout from "../utils/logout";
 
 const menuItems = [
   {
@@ -40,10 +41,8 @@ export default function Sidebar() {
     setMounted(true);
   }, []);
 
-  const handleAdminLogout = () => {
-    localStorage.removeItem("adminId");
-    localStorage.removeItem("adminName");
-    navigate("/AdminLogin", { replace: true });
+  const handleAdminLogout = async () => {
+    await logout({ navigate, redirectTo: "/AdminLogin" });
   };
 
   const triggerRipple = (path) => {

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import API_BASE_URL from "../config/apiConfig";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
+import { isAdmin, setAuthSession } from "../utils/auth";
+
+const extractAccessToken = (payload = {}) =>
+  payload.accessToken || payload.token || payload?.data?.accessToken || "";
 
 export default function AdminLogin() {
   const [adminData, setAdminData] = useState({
@@ -18,10 +21,7 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedAdminId = localStorage.getItem("adminId");
-    const storedAdminName = localStorage.getItem("adminName");
-
-    if (storedAdminId && storedAdminName) {
+    if (isAdmin()) {
       navigate("/AdminDashboard", { replace: true });
     }
   }, [navigate]);
@@ -72,18 +72,39 @@ export default function AdminLogin() {
     if (!validate()) return;
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/admin/admin/login`,
-        adminData,
-      );
+      const response = await api.post("/api/admin/login", adminData);
 
       if (response.data.flag === "1") {
         alert("Admin successfully logged in");
 
-        localStorage.setItem("adminName", response.data.name);
-        localStorage.setItem("adminId", response.data.id);
+        let accessToken = extractAccessToken(response.data);
+        const adminUser = response.data.user || {
+          id: response.data.id || response.data.adminId || "",
+          name: response.data.name || "Administrator",
+          email: response.data.email || adminData.email,
+          role: response.data.role || "admin",
+          lastLogin: response.data.lastLogin || "",
+        };
 
-        navigate("/AdminDashboard", { replace: true });
+        if (!accessToken) {
+          try {
+            const refreshResponse = await api.post("/auth/refresh");
+            accessToken = extractAccessToken(refreshResponse.data);
+          } catch (refreshError) {
+            console.error(
+              "Unable to fetch admin access token after login:",
+              refreshError,
+            );
+          }
+        }
+
+        setAuthSession({ accessToken, user: adminUser });
+
+        if (accessToken) {
+          navigate("/AdminDashboard", { replace: true });
+        } else {
+          alert("Login succeeded, but no access token was returned.");
+        }
       } else {
         alert("Invalid email or password");
       }
