@@ -58,6 +58,8 @@ function App() {
       "/AdminLogin",
       "/ReportDesign",
       "/login",
+      "/Login",
+      "/signup",
       "/Signup",
       "/Error",
       "/CarExplore",
@@ -114,6 +116,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/AboutUs" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/Contact" element={<ContactUs />} />
           <Route path="/ComingSoon" element={<ComingSoon />} />
           <Route path="/AdminLogin" element={<AdminLogin />} />
           <Route path="/ForgotPassword" element={<ForgotPassword />} />
@@ -121,6 +124,8 @@ function App() {
 
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/Login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/Signup" element={<Signup />} />
           </Route>
 

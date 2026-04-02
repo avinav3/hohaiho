@@ -22,20 +22,141 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const getFirstNonEmpty = (values = []) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim() !== "") {
+      return value.trim();
+    }
+  }
+  return "";
+};
+
+const readStorageValue = (key) =>
+  getFirstNonEmpty([localStorage.getItem(key), sessionStorage.getItem(key)]);
+
+const getStoredUserData = () => {
+  const name = getFirstNonEmpty([
+    readStorageValue("name"),
+    readStorageValue("fullName"),
+    readStorageValue("fullname"),
+    readStorageValue("username"),
+    readStorageValue("userName"),
+    readStorageValue("displayName"),
+  ]);
+
+  const role = getFirstNonEmpty([
+    readStorageValue("role"),
+    readStorageValue("userRole"),
+    readStorageValue("userType"),
+    readStorageValue("accountType"),
+  ]);
+
+  const token = getFirstNonEmpty([
+    readStorageValue("token"),
+    readStorageValue("authToken"),
+    readStorageValue("accessToken"),
+  ]);
+
+  const id = getFirstNonEmpty([
+    readStorageValue("id"),
+    readStorageValue("user_id"),
+  ]);
+
+  return {
+    name: name || "User",
+    role: role || null,
+    isAuthenticated: Boolean(token || id),
+  };
+};
+
+const clearStoredAuthData = () => {
+  const keysToRemove = [
+    "rentgoUser",
+    "loggedInUser",
+    "currentUser",
+    "user",
+    "authUser",
+    "userData",
+    "profile",
+    "loginData",
+    "customer",
+    "account",
+    "userInfo",
+    "token",
+    "authToken",
+    "accessToken",
+    "refreshToken",
+    "id",
+    "user_id",
+    "role",
+    "userRole",
+    "userType",
+    "accountType",
+    "name",
+    "fullName",
+    "fullname",
+    "username",
+    "userName",
+    "displayName",
+    "email",
+    "userEmail",
+    "mail",
+    "emailAddress",
+  ];
+
+  keysToRemove.forEach((key) => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+};
+
 function Navbar() {
   const navigate = useNavigate();
 
-  const [language, setLanguage] = useState("EN");
-  const [location, setLocation] = useState("NEP");
+  const [language] = useState("EN");
+  const [location] = useState("NEP");
   const [theme, setTheme] = useState("light");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [role, setRole] = useState(null);
+  const [userData, setUserData] = useState({
+    name: "User",
+  });
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications] = useState(3);
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const syncUserFromStorage = () => {
+    const storedUser = getStoredUserData();
+
+    setUserData({
+      name: storedUser.name || "User",
+    });
+    setRole(storedUser.role || null);
+    setIsAuthenticated(storedUser.isAuthenticated);
+  };
+
+  useEffect(() => {
+    syncUserFromStorage();
+
+    const handleStorageChange = () => {
+      syncUserFromStorage();
+    };
+
+    const handleWindowFocus = () => {
+      syncUserFromStorage();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, []);
 
   useEffect(() => {
     const hideTimer = setTimeout(() => {
@@ -67,12 +188,14 @@ function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
+
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
@@ -92,12 +215,24 @@ function Navbar() {
     setIsMenuOpen(false);
   };
 
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    closeMenu();
+    clearStoredAuthData();
+    setIsAuthenticated(false);
+    setRole(null);
+    setUserData({
+      name: "User",
+    });
+    navigate("/login", { replace: true });
+  };
+
   const menuItems = [
     { to: "/", label: "Home", icon: Home, show: true },
     { to: "/#services", label: "Services", icon: Wrench, show: true },
     { to: "/AboutUs", label: "About Us", icon: Info, show: role !== "staff" },
     {
-      to: "/Contact",
+      to: "/contact",
       label: "Contact Us",
       icon: Phone,
       show: role !== "staff",
@@ -114,7 +249,12 @@ function Navbar() {
       icon: Wrench,
       show: role !== "staff",
     },
-    { to: "/Dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
+    {
+      to: "/Dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      show: true,
+    },
     { to: "/ListCar", label: "List Car", icon: Plus, show: role === "staff" },
   ];
 
@@ -144,6 +284,7 @@ function Navbar() {
                   <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-yellow-200 animate-pulse" />
                 </div>
               </div>
+
               <div>
                 <span
                   className={`font-black text-2xl tracking-tight transition-colors duration-300 ${
@@ -318,24 +459,23 @@ function Navbar() {
                   </button>
 
                   {showProfileMenu && (
-                    <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-amber-200 dark:border-amber-700/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-amber-200 dark:border-amber-700/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-4 border-b border-amber-200 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30">
-                        <p className="font-bold text-gray-900 dark:text-white">
-                          John Doe
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          john@example.com
+                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                          {userData.name || "User"}
                         </p>
                       </div>
+
                       <div className="py-2">
                         <a
-                          href="/profile"
+                          href="/Profile"
                           className="flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors duration-200 group"
                           onClick={() => setShowProfileMenu(false)}
                         >
                           <CircleUserRound className="h-5 w-5 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-200" />
                           <span className="font-medium">View Profile</span>
                         </a>
+
                         <a
                           href="/favorites"
                           className="flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors duration-200 group"
@@ -344,6 +484,7 @@ function Navbar() {
                           <Heart className="h-5 w-5 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform duration-200" />
                           <span className="font-medium">Favorites</span>
                         </a>
+
                         <a
                           href="/settings"
                           className="flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors duration-200 group"
@@ -353,22 +494,16 @@ function Navbar() {
                           <span className="font-medium">Settings</span>
                         </a>
                       </div>
+
                       <div className="border-t border-amber-200 dark:border-amber-700/50">
-                        <a
-                          href="/login"
-                          className="flex items-center space-x-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 group"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setShowProfileMenu(false);
-                            setIsAuthenticated(false);
-                            localStorage.clear();
-                            sessionStorage.clear();
-                            window.location.href = "/";
-                          }}
+                        <button
+                          type="button"
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 group"
+                          onClick={handleLogout}
                         >
                           <LogOut className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
                           <span className="font-medium">Logout</span>
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -433,6 +568,7 @@ function Navbar() {
               RENTGO
             </span>
           </a>
+
           <button
             onClick={closeMenu}
             className="p-2 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60 transition-all duration-300 hover:rotate-90 hover:scale-110"
@@ -442,7 +578,18 @@ function Navbar() {
           </button>
         </div>
 
-        <nav className="px-4 pt-6 pb-6 space-y-2 overflow-y-auto h-[calc(100%-200px)]">
+        <nav className="px-4 pt-6 pb-6 space-y-2 overflow-y-auto h-[calc(100%-220px)]">
+          {isAuthenticated && (
+            <div className="mx-1 mb-4 rounded-2xl border border-amber-200 dark:border-amber-700/50 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/50 dark:to-yellow-950/30 p-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Signed in as
+              </p>
+              <p className="font-bold text-gray-900 dark:text-white truncate">
+                {userData.name || "User"}
+              </p>
+            </div>
+          )}
+
           {menuItems
             .filter((item) => item.show)
             .map((item) => (
@@ -476,6 +623,7 @@ function Navbar() {
               <Globe className="h-5 w-5 group-hover:rotate-180 transition-transform duration-500 text-amber-600 dark:text-amber-400" />
               <span className="font-medium">{language}</span>
             </button>
+
             <button className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
               <span className="font-medium">{location}</span>
             </button>
@@ -483,12 +631,13 @@ function Navbar() {
 
           {!isAuthenticated ? (
             <div className="grid grid-cols-2 gap-3">
-              <a href="/Login" className="w-full" onClick={closeMenu}>
+              <a href="/login" className="w-full" onClick={closeMenu}>
                 <button className="w-full py-3 px-4 rounded-xl border-2 border-amber-500 text-amber-600 hover:bg-amber-50 transition-all duration-300 font-bold hover:scale-105">
                   Sign In
                 </button>
               </a>
-              <a href="/Signup" className="w-full" onClick={closeMenu}>
+
+              <a href="/signup" className="w-full" onClick={closeMenu}>
                 <button className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 transition-all duration-300 font-bold hover:scale-105 hover:shadow-xl">
                   Get Started
                 </button>
@@ -497,13 +646,7 @@ function Navbar() {
           ) : (
             <button
               type="button"
-              onClick={() => {
-                closeMenu();
-                setIsAuthenticated(false);
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = "/";
-              }}
+              onClick={handleLogout}
               className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold hover:scale-105"
             >
               <LogOut className="h-5 w-5" />
